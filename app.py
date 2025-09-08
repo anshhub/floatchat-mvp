@@ -1,4 +1,3 @@
-# file: app.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -15,74 +14,40 @@ sample_data = pd.DataFrame({
     "salinity": [35.1, 34.9, 35.3, 36.1, 34.8],
     "temperature": [28.3, 27.8, 28.5, 26.4, 28.0]
 })
-st.write("--- Debugging: Sample Data --- ")
-st.write("Shape of sample_data:", sample_data.shape)
-st.write("First 5 rows of sample_data:")
-st.dataframe(sample_data.head())
-st.write("--- End Debugging: Sample Data ---")
+
+# Sidebar
+with st.sidebar:
+    st.title("🌊 FloatChat")
+    st.write("Welcome to FloatChat!")
+    user_query = st.text_input("Ask:", placeholder="Type your question...")
+    if st.button("▶️ Ask"):
+        st.session_state["last_query"] = user_query
 
 # -------------------------
 # Streamlit UI
 # -------------------------
 st.set_page_config(page_title="🌊 FloatChat (Enhanced Frontend)", layout="wide")
+st.sidebar.title("🌊 FloatChat Dashboard")
 
-# Sidebar with chat functionality moved here
-with st.sidebar:
-    st.title("🌊 FloatChat")
-    st.write("Welcome to FloatChat!")
-    
-    # User role selection
-    user_role = st.selectbox("👤 Select Role", ["Student", "Researcher", "Policy Maker"])
-    
-    # Navigation menu
-    menu = st.radio(
-        "📍 Navigation",
-        ["Chatbot", "Explore Data", "Visualizations", "Query History"]
-    )
-    
-    # Ask about ARGO data section moved to left side
-    st.markdown("---")
-    st.subheader("💬 Ask about ARGO data")
-    user_query = st.text_input("Ask:", placeholder="Type your question...")
-    if st.button("▶️ Ask"):
-        st.session_state["last_query"] = user_query
-        # Initialize messages if not exists
-        if "messages" not in st.session_state:
-            st.session_state["messages"] = []
-        
-        # Add user message
-        st.session_state["messages"].append({"role": "user", "content": user_query})
-        
-        # Demo reply
-        response = f"🤖 (Demo) Hi {user_role}, here's some placeholder data for: {user_query}"
-        st.session_state["messages"].append({"role": "assistant", "content": response})
+# User role selection
+user_role = st.sidebar.selectbox("👤 Select Role", ["Student", "Researcher", "Policy Maker"])
 
+menu = st.sidebar.radio(
+    "📍 Navigation",
+    ["Chatbot", "Explore Data", "Visualizations", "Query History"]
+)
 # Main layout
 col_map, col_chart = st.columns([1, 1])
 
 with col_map:
     st.subheader("🌍 Live Map (ARGO)")
-    # Increased height to match salinity chart by using custom CSS
-    st.markdown("""
-    <style>
-    .argo-image {
-        height: 500px;
-        object-fit: cover;
-        width: 100%;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    # Display image with increased height
     st.image("Screenshot 2025-09-08 001347.png",
-         caption="ARGO Observation Network (static View)",
+         caption="ARGO Observation Network (Static View)",
          use_container_width=True)
 
 with col_chart:
     st.subheader("📈 Salinity Chart")
     fig = px.line(sample_data, x="date", y="salinity", markers=True, title="Salinity over Time")
-    # Set explicit height for the chart
-    fig.update_layout(height=500)
     st.plotly_chart(fig, use_container_width=True)
     st.write("--- Debugging: Salinity Chart --- ")
     st.write("Salinity chart figure generated.")
@@ -101,18 +66,29 @@ if menu == "Chatbot":
     for msg in st.session_state["messages"]:
         with st.chat_message(msg["role"]):
             st.write(msg["content"])
-            # Show data and visualization for assistant messages
-            if msg["role"] == "assistant":
-                st.dataframe(sample_data)
-                
-                fig = px.scatter_geo(
-                    sample_data, lat="lat", lon="lon", text="float_id",
-                    color="temperature", projection="natural earth"
-                )
-                st.plotly_chart(fig, use_container_width=True)
-                st.write("--- Debugging: Chatbot Scatter Geo Chart --- ")
-                st.write("Chatbot scatter geo chart figure generated.")
-                st.write("--- End Debugging: Chatbot Scatter Geo Chart ---")
+
+    # Chat input
+    if prompt := st.chat_input("Ask about ARGO data..."):
+        st.session_state["messages"].append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.write(prompt)
+
+        # Demo reply
+        response = f"🤖 (Demo) Hi {user_role}, here's some placeholder data for: {prompt}"
+        st.session_state["messages"].append({"role": "assistant", "content": response})
+
+        with st.chat_message("assistant"):
+            st.write(response)
+            st.dataframe(sample_data)
+
+            fig = px.scatter_geo(
+                sample_data, lat="lat", lon="lon", text="float_id",
+                color="temperature", projection="natural earth"
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            st.write("--- Debugging: Chatbot Scatter Geo Chart --- ")
+            st.write("Chatbot scatter geo chart figure generated.")
+            st.write("--- End Debugging: Chatbot Scatter Geo Chart ---")
 
     # Quick suggestions
     st.write("👉 Quick Queries:")
@@ -176,7 +152,7 @@ elif menu == "Visualizations":
     with tab2:
         st.line_chart(sample_data.set_index("date")[["salinity", "temperature"]])
         st.write("--- Debugging: Visualizations Line Chart --- ")
-        st.write("Visualizations line chart generated.")
+        st.write("Visualizations line chart figure generated.")
         st.write("--- End Debugging: Visualizations Line Chart ---")
 
     with tab3:
